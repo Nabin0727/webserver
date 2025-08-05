@@ -1,5 +1,5 @@
 // Building srver
-//
+
 #include<unistd.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
@@ -7,6 +7,9 @@
 #include<stdlib.h>
 #include<string.h>
 #include<fcntl.h>
+#include<sys/stat.h>
+#include<sys/sendfile.h>
+
 
 #define BUFFSIZE 1000
 
@@ -54,40 +57,41 @@ int main()
 		int newSocket = accept(socketServer, (struct sockaddr *)&address, (socklen_t *)&addrLength);
 		
 		// receive the client request
-		ssize_t bytes_received = recv(newSocket, buffer, sizeof(buffer), 0);
+		ssize_t bytes_received = recv(newSocket, buffer, sizeof(buffer)-1 , 0); // -1 at the buffer ensures there is no buffer overflow
 
 		// validate the client request
 		if (bytes_received >= 0)
 		{
-			buffer[bytes_received]= '\0';
+			buffer[bytes_received]= '\0'; // null terminator
 
 		}
 		else{
 			perror("Error reading buffer!");
-		}
 		
+		}
+	
+		// print client request to console
+		puts(buffer);
+
 		// copy buffer to another variable
 		char buffer1[BUFFSIZE];
 		strcpy(buffer1, buffer);
+		
 		// parse the client request
 		char *request = strtok(buffer1,"\r\n");
-		char *request2 = strtok(request, " ");
+		char *method = strtok(request, " ");
 		char *filename = strtok(NULL, " ");
-		char *request4 = strtok(NULL, " ");
-
-		// open file
-		int opened_fd = open(filename, O_RDONLY);
-
-		if (opened_fd < 0)
-		{
-			char *response = "HTTP/1.1 404 Not Found\r\n\r\n";
-			send(newSocket, response, strlen(response), 0 );
+		char *protocol = strtok(NULL, " ");
+		
+		if (!method || !filename || !protocol) {
+    			fprintf(stderr, "Malformed request.\n");
+    			close(newSocket);
+    			continue;
 		}
-		else 
-		{	
-			if (file == "")
+
+		if (strcmp(filename, "/") == 0)
 			{
-				char *response ="HTTP/1.1 200 OK\r\n"
+				char *response = "HTTP/1.1 200 OK\r\n"
                         	 	"Content-Type: text/html; charset=UTF-8\r\n\r\n"
                         	 	"<!DOCTYPE html>\r\n"
                         	 	"<html>\r\n"
@@ -103,30 +107,64 @@ int main()
 				send(newSocket, response, strlen(response), 0 );
 
 			}
-			else{
-				fseek(opened_fd, 0, SEEK_END); // Move to end of file
-    				long file_size = ftell(opened_fd); 
+		else{
+			if (filename[0] == '/')
+				filename++;
+			
+			// open file
+			int opened_fd = open(filename, O_RDONLY);
+			
+			if (opened_fd < 0)
+			{
+				char *response = "HTTP/1.1 404 Error\r\n"
+                	        	 	"Content-Type: text/html; charset=UTF-8\r\n\r\n"
+                	        	 	"<!DOCTYPE html>\r\n"
+                	        	 	"<html>\r\n"
+                	        		"<head>\r\n"
+                	        		"<title>File Not Found</title>\r\n"
+                	        		"</head>\r\n"
+                	        		"<body>\r\n"
+                	        		"404 error\r\n"
+                	        		"</body>\r\n"
+                	        		"</html>\r\n";
+				send(newSocket, response, strlen(response), 0 );
+			}
+			else 
+			{
+				struct stat st;
+    				fstat(opened_fd, &st);
+    				off_t file_size = st.st_size;
 				
-				// send avaliable file
-				send(newSocket, opened_fd, file_size, 0);
-			}{
-
+				char header[BUFFSIZE];
+				
+				/*snprintf(header, BUFFSIZE,
+				         "HTTP/1.1 200 OK\r\n"
+				         "Content-Type: text/html\r\n"
+				         "Content-Length: %ld\r\n\r\n", st.st_size);*/
+				/* char *response = "HTTP/1.1 200 OK\r\n"
+                        	 	"Content-Type: text/html; charset=UTF-8\r\n\r\n"
+                        	 	"<!DOCTYPE html>\r\n"
+                        	 	"<html>\r\n"
+                        		"<head>\r\n"
+                        		"<title>This is index page!!</title>\r\n"
+                        		"</head>\r\n"
+                        		"<body>\r\n"
+                        		"Hello, From Index Server!!\r\n"
+                        		"</body>\r\n"
+                        		"</html>\r\n";	
+				*/
+				// send response
+				//send(newSocket, response, strlen(response), 0);		
+				//send(newSocket, header, strlen(header), 0);		
+				sendfile(newSocket, opened_fd, NULL, file_size);
+			}
 		}
-
-
-		// print client request to console
-		puts(buffer);
-
-
 
 		// close new socket
 		close(newSocket);
-		close(opened_fd);
-
 	}
 
 	// close orginal socket
 	close(socketServer);
-
 	return 0;
 }
