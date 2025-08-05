@@ -49,7 +49,7 @@ This project implements a **simple HTTP web server in C** using low-level socket
      - Removes the leading `/`
      - Tries to `open()` the file
      - Uses `sendfile()` to stream file content directly to client
-   - If the file doesn't exist, responds with a basic 404 HTML page
+   - If the file doesn't exist, it responds with a basic 404 HTML page
 
 4. **Looping**:
    - Repeats the above for every new client connection
@@ -106,7 +106,4 @@ Socket functions: socket(), bind(), listen(), accept(), recv(), sendfile()
 
 File handling and error management
 
-🧑‍💻 Author
-Made with ❤️ by [Your Name]
-
-Feel free to fork, improve, or use this as a base for your own webserver projects.
+Feel free to fork, improve, or use this as a base for your web server projects.
