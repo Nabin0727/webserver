@@ -11,7 +11,7 @@ This project implements a **simple HTTP web server in C** using low-level socket
 
 ## 📂 Project Structure
 
-.
+
 ├── server.c # The main server implementation in C
 
 ├── README.md # This file
