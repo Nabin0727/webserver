@@ -13,7 +13,9 @@ This project implements a **simple HTTP web server in C** using low-level socket
 
 .
 ├── server.c # The main server implementation in C
+
 ├── README.md # This file
+
 └── [your static files like index.html, hello.txt, etc.]
 
 
