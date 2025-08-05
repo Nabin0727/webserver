@@ -105,5 +105,6 @@ HTTP protocol basics
 Socket functions: socket(), bind(), listen(), accept(), recv(), sendfile()
 
 File handling and error management
+```
 
-Feel free to fork, improve, or use this as a base for your web server projects.
+## 🧠 Feel free to fork, improve, or use this as a base for your web server projects.
